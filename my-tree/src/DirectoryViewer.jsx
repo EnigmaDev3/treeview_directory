@@ -1,68 +1,35 @@
-import React, { useState } from 'react';
-const fs = require('fs');
-
-const DirectoryViewer = () => {
-  const [files, setFiles] = useState([]);
-  const [directoryName, setDirectoryName] = useState('');
-
-  const handleDirectoryChange = (event) => {
-    const directory = event.target.files;
-    const fileList = [];
-    for (let i = 0; i < directory.length; i++) {
-      fileList.push(directory[i].webkitRelativePath);
-    }
-    setFiles(fileList);
-
-  
-    if (directory.length > 0) {
-      const fullPath = directory[0].webkitRelativePath;
-      const dirName = fullPath.split('/');
-      setDirectoryName(dirName);
-    }
-  };
-  const fs = require('fs');
-  const path = require('path');
-  
-  function dirTree(filename) {
-      let stats = fs.lstatSync(filename);
-      let info = {
-          path: filename,
-          name: path.basename(filename)
-      };
-  
-      if (stats.isDirectory()) {
-          info.type = "folder";
-          info.children = fs.readdirSync(filename).map(function(child) {
-              return dirTree(filename + '/' + child);
+export function returnTreeView(directoryContent) {
+  function addChild(obj, pathParts, fileName) {
+      if (pathParts.length === 0) {
+          obj.push({
+              name: fileName,
           });
-      } else {
-          info.type = "file";
+          return;
       }
-  
-      return info;
+
+      const [part, ...rest] = pathParts;
+      let child = obj.find((el) => el.name === part);
+
+      if (!child) {
+          child = {
+              name: part,
+              children: [],
+          };
+          obj.push(child);
+      }
+
+      addChild(child.children, rest, fileName);
   }
-  return (
-    <div>
-      <input
-        type="file"
-        webkitdirectory="true"
-        onChange={handleDirectoryChange}
-        style={{ display: 'none' }}
-        id="directoryInput"
-      />
-      <button onClick={() => document.getElementById('directoryInput').click()}>
-        Выбрать каталог
-      </button>
-      <input
-        type="text"
-        value={directoryName[0]}
-        readOnly
-        placeholder="Выбранный каталог"
-      />
-    </div>
 
-  );
-};
+  let treeView = {
+      children: [],
+  };
 
-export default DirectoryViewer;
+  Object.values(directoryContent).forEach((file) => {
+      const pathParts = file.webkitRelativePath.split("/");
+      const fileName = pathParts.pop();
+      addChild(treeView.children, pathParts, fileName);
+  });
 
+  return treeView.children.length === 1 ? treeView.children[0] : treeView;
+}
